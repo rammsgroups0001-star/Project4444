@@ -259,19 +259,19 @@
   </div>
 
 <script>
-  const _k1 = "AQ.Ab8RN6JGvWhOAEvGdlL3dTHrf";
-  const _k2 = "vk1b1oW5IOo1E_GY1bb4Al9SQ";
-  const GEMINI_API_KEY = _k1 + _k2;
-
   const chatBox = document.getElementById('chatBox');
   const userInput = document.getElementById('userInput');
   const statusLabel = document.getElementById('statusLabel');
   const voiceToggle = document.getElementById('voiceToggle');
   const micBtn = document.getElementById('micBtn');
 
-  // Voice OFF by default so it NEVER loops or repeats automatically
   let voiceEnabled = false;
-  let chatHistory = [];
+  let chatHistory = [
+    {
+      role: 'system',
+      content: 'You are RAMMS GROUPS AI, an intelligent, friendly AI assistant created by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad (Jharkhand). Answer every question clearly, accurately, and concisely in the user’s language (Hindi, Hinglish, or English).'
+    }
+  ];
 
   function toggleSpeech() {
     voiceEnabled = !voiceEnabled;
@@ -288,9 +288,9 @@
   function speakOnce(text) {
     if (!voiceEnabled || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const cleanText = text.replace(/[*#_`•]/g, '').slice(0, 300);
+    const cleanText = text.replace(/[*#_`•]/g, '').slice(0, 320);
     const u = new SpeechSynthesisUtterance(cleanText);
-    u.lang = 'en-IN';
+    u.lang = /[\u0900-\u097F]/.test(cleanText) ? 'hi-IN' : 'en-IN';
     u.rate = 1.02;
     window.speechSynthesis.speak(u);
   }
@@ -324,7 +324,6 @@
     sendMessage();
   }
 
-  // One-shot speech-to-text (no auto-restart loop)
   function startVoiceInput() {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRec) {
@@ -350,53 +349,59 @@
     rec.start();
   }
 
-  // Primary Gemini 2.5 Flash Call (Clean JSON without restricted search tool)
-  async function askGeminiNeural(userPrompt) {
+  // 100% Free Keyless Neural LLM Engine (Works directly from browser with zero API key)
+  async function askFreeNeuralLLM(userPrompt) {
     const nowStr = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       dateStyle: 'full',
       timeStyle: 'short'
     });
 
-    const tempHistory = [...chatHistory, { role: 'user', parts: [{ text: userPrompt }] }].slice(-10);
-
-    const payload = {
-      systemInstruction: {
-        parts: [{
-          text: `You are RAMMS GROUPS AI, an intelligent AI assistant built by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School. Current real-time date and time in India: ${nowStr}. Answer every question clearly, accurately, and naturally in the user's language (Hindi, Hinglish, or English).`
-        }]
+    const messagesToSend = [
+      {
+        role: 'system',
+        content: `You are RAMMS GROUPS AI, an intelligent AI assistant built by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad. Current date and time in India: ${nowStr}. Answer all questions accurately, helpfully, and naturally in the same language the user uses (Hindi, Hinglish, or English).`
       },
-      contents: tempHistory
-    };
+      ...chatHistory.slice(-8),
+      { role: 'user', content: userPrompt }
+    ];
 
-    let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+    // Primary Keyless Endpoint (OpenAI-compatible JSON)
+    try {
+      const res = await fetch('https://text.pollinations.ai/openai', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GEMINI_API_KEY}`
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'openai',
+          messages: messagesToSend,
+          seed: Math.floor(Math.random() * 100000)
+        })
       });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data?.choices?.[0]?.message?.content;
+        if (reply && reply.trim()) {
+          chatHistory.push({ role: 'user', content: userPrompt });
+          chatHistory.push({ role: 'assistant', content: reply.trim() });
+          return reply.trim();
+        }
+      }
+    } catch (e) {}
+
+    // Secondary Keyless GET Endpoint
+    const promptEncoded = encodeURIComponent(`You are RAMMS GROUPS AI (created by Manas Jha, CEO of RAMMS GROUPS, for Tata DAV School Jamadoba Dhanbad). Answer clearly in user's language: ${userPrompt}`);
+    const getRes = await fetch(`https://text.pollinations.ai/${promptEncoded}?model=openai`);
+    if (getRes.ok) {
+      const textReply = await getRes.text();
+      if (textReply && textReply.trim()) {
+        chatHistory.push({ role: 'user', content: userPrompt });
+        chatHistory.push({ role: 'assistant', content: textReply.trim() });
+        return textReply.trim();
+      }
     }
 
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      throw new Error(data?.error?.message || `HTTP ${res.status}`);
-    }
-
-    const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (replyText) {
-      chatHistory = [...tempHistory, { role: 'model', parts: [{ text: replyText }] }];
-      return replyText;
-    }
-    throw new Error('Empty response');
+    throw new Error('Neural network busy');
   }
 
   // Live Breaking News Engine
@@ -434,7 +439,7 @@
     return null;
   }
 
-  // Live Wikipedia + DuckDuckGo Knowledge Backup
+  // Live Wikipedia Backup
   async function fetchLiveKnowledge(query) {
     let topic = query
       .replace(/^(what is|who is|tell me about|explain|define|kya hai|kaun hai|ke baare mein batao|about|क्या है|कौन है)\s+/i, '')
@@ -455,12 +460,6 @@
       if (sumData && sumData.extract) {
         return `<strong>${sumData.title}:</strong> ${sumData.extract}`;
       }
-    }
-
-    const ddgRes = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(topic)}&format=json&no_html=1`);
-    const ddgData = await ddgRes.json();
-    if (ddgData?.AbstractText) {
-      return ddgData.AbstractText;
     }
     return null;
   }
@@ -495,41 +494,19 @@
       }
     }
 
-    // 3. Primary Gemini AI Response
+    // 3. Keyless Full AI LLM Response
     try {
-      const aiReply = await askGeminiNeural(text);
+      const aiReply = await askFreeNeuralLLM(text);
       statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
       appendMessage('ai', formatMarkdown(aiReply));
       return;
     } catch (err) {
-      // 4. Smart Dynamic Fallback
-      if (/^(hi|hello|hey|namaste|hii|helo)\b/i.test(lower)) {
-        statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-        appendMessage('ai', 'Hello! Main <strong>RAMMS GROUPS AI</strong> hoon. Bataiye, aaj main aapki kya madad kar sakta hoon?');
-        return;
-      }
-
-      if (lower.includes('tum kaun ho') || lower.includes('who are you') || lower.includes('kisne banaya') || lower.includes('school') || lower.includes('tata dav')) {
-        statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-        appendMessage('ai', 'Main <strong>RAMMS GROUPS AI</strong> hoon—jise <strong>Manas Jha</strong> (CEO, RAMMS GROUPS; Founder: Rupesh Kumar Sinha) ne <strong>Tata DAV School</strong> ke liye banaya hai.');
-        return;
-      }
-
-      if (lower.includes('time') || lower.includes('samay') || lower.includes('date') || lower.includes('tarikh')) {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-        const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-        appendMessage('ai', `Abhi ka live samay <strong>${timeStr}</strong> hai aur aaj <strong>${dateStr}</strong> hai.`);
-        return;
-      }
-
       const knowledge = await fetchLiveKnowledge(text);
       statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
       if (knowledge) {
         appendMessage('ai', knowledge);
       } else {
-        appendMessage('ai', `API Connection Note: ${err.message}`);
+        appendMessage('ai', 'Network busy hai—kripya ek second baad dubara poochein!');
       }
     }
   }
