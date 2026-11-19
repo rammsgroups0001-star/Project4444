@@ -27,7 +27,6 @@
       padding: 24px 16px 34px;
     }
 
-    /* Minimal Top Brand Header */
     .top-brand {
       text-align: center;
       z-index: 10;
@@ -50,7 +49,6 @@
       text-transform: uppercase;
     }
 
-    /* Center Living Holographic Voice Orb */
     .orb-stage {
       position: relative;
       width: 260px;
@@ -96,7 +94,6 @@
       transition: transform 0.12s ease, background 0.25s ease, box-shadow 0.25s ease;
     }
 
-    /* Dynamic Voice Wave Bars inside the Orb */
     .wave-bar {
       width: 5px;
       height: 16px;
@@ -105,7 +102,6 @@
       transition: height 0.08s ease;
     }
 
-    /* Listening State (Emerald Green Pulse) */
     .orb-stage.listening .ai-core {
       background: radial-gradient(circle at 35% 30%, #6EE7B7, #059669 55%, #064E3B 100%);
       box-shadow: 0 0 55px rgba(16, 185, 129, 0.75), inset 0 0 24px rgba(255, 255, 255, 0.5);
@@ -121,7 +117,6 @@
       50% { transform: scale(1.1); }
     }
 
-    /* Thinking State (Amber Rotate) */
     .orb-stage.thinking .ai-core {
       background: radial-gradient(circle at 35% 30%, #FDE68A, #D97706 55%, #451A03 100%);
       box-shadow: 0 0 55px rgba(245, 158, 11, 0.7);
@@ -134,13 +129,11 @@
       100% { transform: rotate(360deg) scale(0.96); }
     }
 
-    /* Speaking State (Cyan/Purple High-Energy Bounce) */
     .orb-stage.speaking .ai-core {
       background: radial-gradient(circle at 35% 30%, #A5F3FC, #2563EB 55%, #312E81 100%);
       box-shadow: 0 0 65px rgba(56, 189, 248, 0.9);
     }
 
-    /* Bottom Mic Controls */
     .controls {
       display: flex;
       gap: 14px;
@@ -174,7 +167,7 @@
     <div class="state-badge" id="statusText">TAP ORB TO SPEAK</div>
   </div>
 
-  <!-- Pure Voice Living Orb (No Text Chat Clutter) -->
+  <!-- Pure Voice Living Orb (Design Unchanged) -->
   <div class="orb-stage" id="orbStage" onclick="startListening()">
     <div class="pulse-ring outer"></div>
     <div class="pulse-ring" id="innerRing"></div>
@@ -256,26 +249,28 @@
     setOrbState('', 'TAP ORB TO SPEAK');
   }
 
-  // Crystal-clear Natural Voice Selector
-  function selectCrystalClearVoice(isHindiText) {
+  // Ultra-Clear Voice Selector (Matches Devanagari Hindi or Clean Indian-English Voice accurately)
+  function pickClearVoice(text) {
     if (!cachedVoices.length) loadVoices();
-    if (isHindiText) {
+    const isDevanagari = /[\u0900-\u097F]/.test(text);
+
+    if (isDevanagari) {
       return (
         cachedVoices.find(v => v.lang.toLowerCase() === 'hi-in' && v.name.toLowerCase().includes('google')) ||
         cachedVoices.find(v => v.lang.toLowerCase().startsWith('hi')) ||
-        cachedVoices.find(v => v.lang.toLowerCase().includes('en-in')) ||
         null
       );
     }
+
     return (
       cachedVoices.find(v => v.lang.toLowerCase() === 'en-in' && v.name.toLowerCase().includes('google')) ||
+      cachedVoices.find(v => v.lang.toLowerCase() === 'en-gb' && v.name.toLowerCase().includes('google')) ||
       cachedVoices.find(v => v.lang.toLowerCase().startsWith('en') && v.name.toLowerCase().includes('google')) ||
       cachedVoices.find(v => v.lang.toLowerCase().startsWith('en')) ||
       null
     );
   }
 
-  // Split long replies into clean sentences so Chrome speech engine never stutters or cuts off
   function speakResponse(spokenText, autoReListen = true) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -291,18 +286,16 @@
       return;
     }
 
-    const hasHindiScript = /[\u0900-\u097F]/.test(clean);
-    const chosenVoice = selectCrystalClearVoice(hasHindiScript);
-
-    // Break into natural sentence chunks for crystal clarity
+    const chosenVoice = pickClearVoice(clean);
+    const isDevanagari = /[\u0900-\u097F]/.test(clean);
     const chunks = clean.match(/[^.!?।]+[.!?।]*/g) || [clean];
     let idx = 0;
 
-    function speakNextChunk() {
+    function speakNext() {
       if (idx >= chunks.length) {
         setOrbState('', 'TAP ORB TO SPEAK');
         if (autoReListen) {
-          setTimeout(() => startListening(), 450);
+          setTimeout(() => startListening(), 400);
         }
         return;
       }
@@ -310,35 +303,33 @@
       const part = chunks[idx].trim();
       idx++;
       if (!part) {
-        speakNextChunk();
+        speakNext();
         return;
       }
 
-      const utterance = new SpeechSynthesisUtterance(part);
+      const u = new SpeechSynthesisUtterance(part);
       if (chosenVoice) {
-        utterance.voice = chosenVoice;
-        utterance.lang = chosenVoice.lang;
+        u.voice = chosenVoice;
+        u.lang = chosenVoice.lang;
       } else {
-        utterance.lang = hasHindiScript ? 'hi-IN' : 'en-IN';
+        u.lang = isDevanagari ? 'hi-IN' : 'en-IN';
       }
 
-      utterance.rate = 1.02;  // Natural human pacing
-      utterance.pitch = 1.02; // Crisp, clear vocal tone
-      utterance.volume = 1.0;
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      u.volume = 1.0;
 
-      utterance.onstart = () => setOrbState('speaking', 'SPEAKING...');
-      utterance.onend = () => speakNextChunk();
-      utterance.onerror = () => {
-        setOrbState('', 'TAP ORB TO SPEAK');
-      };
+      u.onstart = () => setOrbState('speaking', 'SPEAKING...');
+      u.onend = () => speakNext();
+      u.onerror = () => setOrbState('', 'TAP ORB TO SPEAK');
 
-      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.speak(u);
     }
 
-    speakNextChunk();
+    speakNext();
   }
 
-  // Real Gemini 2.5 Flash + Google Search Grounding
+  // Dual-Mode Gemini API Caller (Supports both ?key= and Bearer Auth for AQ.Ab8 tokens)
   async function queryRealAI(userSpeech) {
     const nowStr = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -348,24 +339,38 @@
 
     const tempHistory = [...conversationHistory, { role: 'user', parts: [{ text: userSpeech }] }].slice(-8);
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-    const res = await fetch(url, {
+    const payload = {
+      systemInstruction: {
+        parts: [{
+          text: `You are RAMMS GROUPS AI, a live voice assistant created by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School. Current India time: ${nowStr}. Always use Google Search for live news, weather, sports, and current world facts. IMPORTANT VOICE RULE: If replying in Hindi, write strictly in clean Devanagari script (हिंदी लिपि) so text-to-speech pronounces every word clearly. Keep answers concise (2 to 3 crisp sentences) without symbols or markdown.`
+        }]
+      },
+      contents: tempHistory,
+      tools: [{ google_search: {} }]
+    };
+
+    // Attempt 1: Standard ?key= parameter
+    let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{
-            text: `You are RAMMS GROUPS AI, an intelligent live voice assistant created by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School. Current India time: ${nowStr}. Always use Google Search for live news, weather, sports, and current world facts. Reply in natural, conversational spoken Hindi or English (matching the user's language) in 2 to 3 crisp sentences without bullet points, symbols, or markdown.`
-          }]
-        },
-        contents: tempHistory,
-        tools: [{ google_search: {} }]
-      })
+      body: JSON.stringify(payload)
     });
+
+    // Attempt 2: Bearer token header if Attempt 1 rejects AQ.Ab8 token format
+    if (!res.ok) {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GEMINI_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+    }
 
     const data = await res.json();
     if (!res.ok || data.error) {
-      throw new Error(data?.error?.message || 'API Error');
+      throw new Error(data?.error?.message || `HTTP ${res.status}`);
     }
 
     const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -376,42 +381,66 @@
     throw new Error('Empty response');
   }
 
-  // Live Fallback if network hiccups
+  // Intelligent Multi-Source Live Fallback (Never repeats a single static line)
   async function smartLiveFallback(q) {
     const lower = q.toLowerCase();
 
-    if (lower.includes('time') || lower.includes('samay') || lower.includes('date') || lower.includes('tarikh')) {
-      const now = new Date();
-      return `Abhi samay hai ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })} aur aaj ${now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })} hai.`;
+    if (/hello|hi|hey|namaste|नमस्ते|हेलो/.test(lower)) {
+      return 'नमस्ते! मैं राम्स ग्रुप्स एआई हूँ, जिसे मानस झा और रूपेश कुमार सिन्हा ने टाटा डीएवी स्कूल के लिए बनाया है। बताइए, मैं आपकी क्या मदद कर सकता हूँ?';
     }
 
-    if (lower.includes('weather') || lower.includes('mausam') || lower.includes('temperature')) {
+    if (/who are you|tum kaun|कौन हो|kisne banaya|school|tata dav|टाटा/.test(lower)) {
+      return 'मैं राम्स ग्रुप्स एआई हूँ। मुझे राम्स ग्रुप्स के सीईओ मानस झा और फाउंडर रूपेश कुमार सिन्हा द्वारा टाटा डीएवी स्कूल की प्रदर्शनी के लिए तैयार किया गया है।';
+    }
+
+    if (/time|samay|date|tarikh|समय|तारीख/.test(lower)) {
+      const now = new Date();
+      const t = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const d = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return `अभी भारत में समय ${t} हो रहा है, और आज ${d} है।`;
+    }
+
+    if (/weather|mausam|temperature|मौसम|तापमान/.test(lower)) {
       const words = q.replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !['weather','mausam','temperature','kaisa','hai','aaj','ka','ki','ke','batao','today'].includes(w.toLowerCase()));
       const city = words[0] || 'Dhanbad';
       const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)).json();
       if (geo?.results?.[0]) {
         const p = geo.results[0];
         const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,wind_speed_10m`)).json();
-        return `${p.name} mein abhi taapman ${w.current.temperature_2m} degree Celsius hai aur hawa ${w.current.wind_speed_10m} kilometer prati ghanta ki raftar se chal rahi hai.`;
+        return `${p.name} में अभी तापमान ${w.current.temperature_2m} डिग्री सेल्सियस है और हवा ${w.current.wind_speed_10m} किलोमीटर प्रति घंटा की रफ़्तार से चल रही है।`;
       }
     }
 
-    if (lower.includes('news') || lower.includes('khabar')) {
+    if (/news|khabar|समाचार|न्यूज़|खबर/.test(lower)) {
       const rss = await (await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent('https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en')}`)).json();
       if (rss?.items?.length) {
-        return `Aaj ki badi khabar hai: ${rss.items[0].title}. Dusri khabar: ${rss.items[1].title}.`;
+        return `Today's top headline is: ${rss.items[0].title}. Also: ${rss.items[1].title}.`;
       }
     }
 
-    const cleanTopic = q.replace(/^(who is|what is|tell me about|kya hai|kaun hai|ke baare mein batao)\s+/i, '').trim();
-    const sData = await (await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanTopic)}&format=json&origin=*`)).json();
+    // Search both Hindi and English Wikipedia dynamically
+    const cleanTopic = q.replace(/^(who is|what is|tell me about|kya hai|kaun hai|ke baare mein batao|क्या है|कौन है)\s+/i, '').trim();
+    const isHindiQuery = /[\u0900-\u097F]/.test(cleanTopic);
+    const wikiLang = isHindiQuery ? 'hi' : 'en';
+
+    const sData = await (await fetch(`https://${wikiLang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanTopic)}&format=json&origin=*`)).json();
     if (sData?.query?.search?.[0]) {
       const title = sData.query.search[0].title;
-      const sum = await (await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)).json();
-      if (sum?.extract) return sum.extract.split('. ').slice(0, 2).join('. ') + '.';
+      const sum = await (await fetch(`https://${wikiLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`)).json();
+      if (sum?.extract) {
+        return sum.extract.split(/[.।]\s+/).slice(0, 2).join('. ') + '.';
+      }
     }
 
-    return 'Main aapki baat sun raha hoon, kripya apna sawal dubara bolein.';
+    // DuckDuckGo Instant Answer API as final live search backup
+    const ddg = await (await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(cleanTopic)}&format=json&no_html=1`)).json();
+    if (ddg?.AbstractText) {
+      return ddg.AbstractText.split('. ').slice(0, 2).join('. ') + '.';
+    }
+
+    return isHindiQuery
+      ? `आपने पूछा ${q}। इस विषय पर ताज़ा जानकारी के लिए कृपया थोड़ा और स्पष्ट सवाल पूछें।`
+      : `You asked about ${q}. Could you please specify a bit more so I can fetch exact details?`;
   }
 
   async function handleUserSpeech(transcript) {
