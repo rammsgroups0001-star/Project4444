@@ -3,294 +3,640 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RAMMS GROUPS AI // Intelligent Assistant</title>
-  <meta name="theme-color" content="#070B14">
+  <title>RAMMS GROUPS AI</title>
+  <meta name="theme-color" content="#131314">
   <style>
     :root {
-      --bg-main: #070B14;
-      --bg-card: #0F172A;
-      --bg-input: #1E293B;
-      --border: rgba(56, 189, 248, 0.28);
-      --accent: #38BDF8;
-      --accent-glow: rgba(56, 189, 248, 0.35);
-      --green: #10B981;
-      --text-main: #F8FAFC;
-      --text-muted: #94A3B8;
+      --bg-base: #131314;
+      --bg-sidebar: #1E1F20;
+      --bg-surface: #1E1F20;
+      --bg-hover: #282A2C;
+      --bg-pill: #282A2C;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-primary: #E3E3E3;
+      --text-secondary: #C4C7C5;
+      --text-muted: #8E918F;
+      --gemini-grad: linear-gradient(74deg, #4285F4 0%, #9B72CB 35%, #D96570 70%, #4285F4 100%);
+      --accent-blue: #A8C7FA;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body, html {
       width: 100%;
       height: 100dvh;
-      background-color: var(--bg-main);
-      color: var(--text-main);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
       display: flex;
-      flex-direction: column;
       overflow: hidden;
     }
 
-    .header {
-      background: rgba(15, 23, 42, 0.96);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 16px;
+    /* Gemini Left Sidebar */
+    .sidebar {
+      width: 260px;
+      background-color: var(--bg-sidebar);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 12px;
+      border-right: 1px solid var(--border-subtle);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 12px 0 40px rgba(0, 0, 0, 0.7);
+      }
+    }
+
+    .sidebar-top {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .new-chat-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #1A1B1C;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 11px 16px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .new-chat-btn:hover {
+      background: var(--bg-hover);
+      color: #fff;
+    }
+
+    .history-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding: 0 12px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 9px 12px;
+      border-radius: 18px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .history-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding-left: 8px;
+    }
+
+    .sidebar-footer strong {
+      color: var(--text-secondary);
+    }
+
+    /* Overlay for mobile drawer */
+    .drawer-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: 40;
+    }
+
+    .drawer-backdrop.show {
+      display: block;
+    }
+
+    /* Main Workspace */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+      min-width: 0;
+    }
+
+    /* Top Minimal Header */
+    .topbar {
+      height: 58px;
+      padding: 0 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 10;
     }
 
-    .brand {
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .menu-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    .model-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pro-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(168, 199, 250, 0.14);
+      color: var(--accent-blue);
+      letter-spacing: 0.5px;
+    }
+
+    .topbar-right {
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .ai-orb {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #38BDF8, #0284C7, #1E1B4B);
-      box-shadow: 0 0 16px var(--accent-glow);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: 900;
-      font-size: 13px;
-      color: #fff;
-    }
-
-    .brand-info h1 {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #fff;
-    }
-
-    .brand-info p {
+    .voice-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 20px;
       font-size: 11px;
-      color: var(--green);
       font-weight: 600;
-    }
-
-    .icon-btn {
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      padding: 6px 11px;
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
       cursor: pointer;
     }
 
-    .icon-btn.active {
-      background: #065F46;
-      border-color: var(--green);
+    .voice-pill.active {
+      background: rgba(168, 199, 250, 0.16);
+      color: var(--accent-blue);
+      border-color: rgba(168, 199, 250, 0.35);
     }
 
-    .chat-container {
+    .avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--gemini-grad);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* Scrollable Feed */
+    .feed-wrapper {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      padding: 16px 16px 24px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      align-items: center;
       scroll-behavior: smooth;
     }
 
-    .msg {
-      max-width: 86%;
-      padding: 12px 15px;
-      border-radius: 14px;
-      font-size: 14px;
-      line-height: 1.55;
-      word-wrap: break-word;
-      animation: fadeIn 0.2s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .msg.user {
-      align-self: flex-end;
-      background: linear-gradient(135deg, #0284C7, #2563EB);
-      color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-
-    .msg.ai {
-      align-self: flex-start;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      border-bottom-left-radius: 4px;
-    }
-
-    .msg.ai .sender {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 4px;
-      display: block;
-    }
-
-    .chips-row {
+    .feed-inner {
+      width: 100%;
+      max-width: 780px;
       display: flex;
-      gap: 8px;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Gemini Welcome Hero Screen */
+    .welcome-hero {
+      margin-top: 4vh;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .hero-greeting h2 {
+      font-size: clamp(28px, 5vw, 44px);
+      font-weight: 600;
+      line-height: 1.2;
+      background: var(--gemini-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-greeting p {
+      font-size: clamp(20px, 3.5vw, 30px);
+      font-weight: 500;
+      color: #444746;
+      margin-top: 4px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 12px;
+    }
+
+    .prompt-card {
+      background: var(--bg-surface);
+      border-radius: 16px;
+      padding: 16px;
+      min-height: 125px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .prompt-card:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-subtle);
+      transform: translateY(-2px);
+    }
+
+    .prompt-card span {
+      font-size: 14px;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .card-icon {
+      align-self: flex-end;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #131314;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* Gemini Message Turns (Clean Document Style, No Boxy Bubbles for AI) */
+    .turn-user {
+      align-self: flex-end;
+      background: #282A2C;
+      color: var(--text-primary);
+      padding: 12px 18px;
+      border-radius: 22px 22px 6px 22px;
+      max-width: 82%;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .turn-ai {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    /* Animated 4-Point Gemini Sparkle SVG */
+    .sparkle-avatar {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .sparkle-avatar.thinking svg {
+      animation: spinPulse 1.5s infinite linear;
+    }
+
+    @keyframes spinPulse {
+      0% { transform: rotate(0deg) scale(0.92); }
+      50% { transform: rotate(180deg) scale(1.12); }
+      100% { transform: rotate(360deg) scale(0.92); }
+    }
+
+    .ai-content {
+      flex: 1;
+      font-size: 15px;
+      line-height: 1.68;
+      color: var(--text-primary);
       overflow-x: auto;
-      padding: 8px 16px;
-      background: rgba(7, 11, 20, 0.94);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .chips-row::-webkit-scrollbar {
-      display: none;
+    .ai-content strong {
+      color: #fff;
+      font-weight: 600;
     }
 
-    .chip {
-      white-space: nowrap;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+    .ai-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .mini-action {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
       color: var(--text-muted);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
       cursor: pointer;
     }
 
-    .chip:hover {
+    .mini-action:hover {
+      background: var(--bg-hover);
       color: #fff;
-      border-color: var(--accent);
     }
 
-    .input-bar {
-      background: var(--bg-card);
-      border-top: 1px solid var(--border);
-      padding: 10px 14px;
+    /* Floating Gemini Capsule Input Dock */
+    .dock-wrapper {
+      width: 100%;
+      padding: 8px 16px 14px;
       display: flex;
-      gap: 8px;
+      flex-direction: column;
       align-items: center;
+      background: linear-gradient(to top, #131314 75%, transparent);
     }
 
-    .input-bar input {
+    .capsule-box {
+      width: 100%;
+      max-width: 780px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 32px;
+      padding: 8px 12px 8px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .capsule-box:focus-within {
+      background: #232426;
+      border-color: rgba(168, 199, 250, 0.45);
+    }
+
+    .capsule-box input {
       flex: 1;
-      background: var(--bg-input);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: #fff;
-      padding: 11px 14px;
-      border-radius: 24px;
-      font-size: 14px;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 15px;
       outline: none;
+      padding: 8px 0;
     }
 
-    .input-bar input:focus {
-      border-color: var(--accent);
+    .capsule-box input::placeholder {
+      color: var(--text-muted);
     }
 
-    .action-btn {
-      width: 42px;
-      height: 42px;
+    .dock-btn {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 18px;
       display: flex;
-      justify-content: center;
       align-items: center;
-      font-size: 17px;
+      justify-content: center;
       cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .dock-btn:hover {
+      background: var(--bg-hover);
       color: #fff;
     }
 
-    .mic-btn {
-      background: #1E293B;
-      border: 1px solid var(--border);
+    .dock-btn.listening {
+      background: rgba(217, 101, 112, 0.25);
+      color: #F28B82;
     }
 
-    .mic-btn.listening {
-      background: #DC2626;
+    .dock-btn.send {
+      background: var(--accent-blue);
+      color: #062E6F;
+      font-size: 16px;
+      font-weight: 800;
     }
 
-    .send-btn {
-      background: #0284C7;
+    .disclaimer {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="brand">
-      <div class="ai-orb">RG</div>
-      <div class="brand-info">
-        <h1>RAMMS GROUPS AI</h1>
-        <p id="statusLabel">● ONLINE • NEURAL &amp; LIVE ENGINE</p>
+  <!-- Mobile Backdrop -->
+  <div class="drawer-backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+
+  <!-- Gemini Left Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <button class="new-chat-btn" onclick="resetNewChat()">
+        <span style="font-size:18px;">+</span> New chat
+      </button>
+      <div class="history-label">Recent</div>
+      <div class="history-list" id="historyList">
+        <div class="history-item" onclick="quickAsk('Who built RAMMS GROUPS AI?')">🏫 RAMMS GROUPS AI Info</div>
       </div>
     </div>
-    <div>
-      <button id="voiceToggle" class="icon-btn" onclick="toggleSpeech()">🔇 VOICE OFF</button>
+
+    <div class="sidebar-footer">
+      <div><strong>RAMMS GROUPS AI</strong> • Ultra Edition</div>
+      <div>CEO: Manas Jha | Founder: Rupesh Kr. Sinha</div>
+      <div>📍 Tata DAV School, Jamadoba</div>
     </div>
-  </div>
+  </aside>
 
-  <div class="chat-container" id="chatBox">
-    <div class="msg ai">
-      <span class="sender">RAMMS GROUPS AI</span>
-      Namaste! Main <strong>RAMMS GROUPS AI</strong> hoon. Aap mujhse duniya ka koi bhi sawal, aaj ki taaza khabrein, mausam, math, ya hamare school project ke baare mein kuch bhi pooch sakte hain!
+  <!-- Main Gemini Workspace -->
+  <main class="main-area">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+        <div class="model-title">
+          RAMMS GROUPS AI
+          <span class="pro-badge">ULTRA 2.5</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button id="voiceToggle" class="voice-pill" onclick="toggleSpeech()">🔇 Voice Off</button>
+        <div class="avatar-circle" title="Manas Jha">MJ</div>
+      </div>
+    </header>
+
+    <div class="feed-wrapper" id="feedWrapper">
+      <div class="feed-inner" id="chatFeed">
+        <!-- Gemini Welcome Screen -->
+        <div class="welcome-hero" id="welcomeHero">
+          <div class="hero-greeting">
+            <h2>Hello, I'm RAMMS GROUPS AI</h2>
+            <p>How can I help you today?</p>
+          </div>
+
+          <div class="cards-grid">
+            <div class="prompt-card" onclick="quickAsk('Aaj India ki top 5 latest news kya hain?')">
+              <span>Aaj ki India &amp; world breaking news batao</span>
+              <div class="card-icon">📰</div>
+            </div>
+            <div class="prompt-card" onclick="quickAsk('Dhanbad Jharkhand ka aaj ka live weather kaisa hai?')">
+              <span>Dhanbad ka abhi ka live weather check karo</span>
+              <div class="card-icon">🌤️</div>
+            </div>
+            <div class="prompt-card" onclick="quickAsk('RAMMS GROUPS AI aur Tata DAV School project ke baare mein batao')">
+              <span>Is AI project aur team ki details batao</span>
+              <div class="card-icon">✨</div>
+            </div>
+            <div class="prompt-card" onclick="quickAsk('Explain Quantum Computing in simple Hindi & English')">
+              <span>Quantum Computing ko aasaan bhasha mein samjhao</span>
+              <div class="card-icon">🧠</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="chips-row">
-    <div class="chip" onclick="quickAsk('Aaj India ki latest news kya hain?')">📰 Aaj ki India News</div>
-    <div class="chip" onclick="quickAsk('Tum kaun ho aur is project ko kisne banaya hai?')">🏫 Project &amp; School Info</div>
-    <div class="chip" onclick="quickAsk('Dhanbad ka aaj ka weather kaisa hai?')">🌤️ Dhanbad Weather</div>
-    <div class="chip" onclick="quickAsk('Abhi kya time aur date ho rahi hai?')">⏰ Live Time &amp; Date</div>
-    <div class="chip" onclick="quickAsk('Explain Artificial Intelligence in simple words')">🧠 What is AI?</div>
-  </div>
-
-  <div class="input-bar">
-    <button id="micBtn" class="action-btn mic-btn" onclick="startVoiceInput()" title="Voice Type">🎙️</button>
-    <input type="text" id="userInput" placeholder="Type your question here..." onkeypress="handleKey(event)">
-    <button class="action-btn send-btn" onclick="sendMessage()" title="Send">➤</button>
-  </div>
+    <!-- Floating Capsule Prompt Input -->
+    <div class="dock-wrapper">
+      <div class="capsule-box">
+        <input type="text" id="userInput" placeholder="Ask RAMMS GROUPS AI..." onkeypress="handleKey(event)" autocomplete="off">
+        <button id="micBtn" class="dock-btn" onclick="startVoiceInput()" title="Use microphone">🎙️</button>
+        <button class="dock-btn send" onclick="sendMessage()" title="Send">➤</button>
+      </div>
+      <div class="disclaimer">RAMMS GROUPS AI • Live Neural &amp; Real-Time Web Intelligence</div>
+    </div>
+  </main>
 
 <script>
-  const chatBox = document.getElementById('chatBox');
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const feedWrapper = document.getElementById('feedWrapper');
+  const chatFeed = document.getElementById('chatFeed');
+  const welcomeHero = document.getElementById('welcomeHero');
   const userInput = document.getElementById('userInput');
-  const statusLabel = document.getElementById('statusLabel');
   const voiceToggle = document.getElementById('voiceToggle');
   const micBtn = document.getElementById('micBtn');
+  const historyList = document.getElementById('historyList');
 
   let voiceEnabled = false;
-  let chatHistory = [
-    {
-      role: 'system',
-      content: 'You are RAMMS GROUPS AI, an intelligent, friendly AI assistant created by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad (Jharkhand). Answer every question clearly, accurately, and concisely in the user’s language (Hindi, Hinglish, or English).'
-    }
-  ];
+  let chatHistory = [];
+
+  const SPARKLE_SVG = `
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gemGrad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4285F4"/>
+          <stop offset="50%" stop-color="#9B72CB"/>
+          <stop offset="100%" stop-color="#D96570"/>
+        </linearGradient>
+      </defs>
+      <path d="M14 2C14.6 8.8 19.2 13.4 26 14C19.2 14.6 14.6 19.2 14 26C13.4 19.2 8.8 14.6 2 14C8.8 13.4 13.4 8.8 14 2Z" fill="url(#gemGrad)"/>
+    </svg>
+  `;
+
+  function toggleSidebar() {
+    sidebar.classList.toggle('open');
+    backdrop.classList.toggle('show');
+  }
+
+  function resetNewChat() {
+    chatHistory = [];
+    chatFeed.innerHTML = '';
+    chatFeed.appendChild(welcomeHero);
+    welcomeHero.style.display = 'flex';
+    if (window.innerWidth <= 768) toggleSidebar();
+  }
+
+  function addToSidebarHistory(queryText) {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerText = '💬 ' + queryText;
+    item.onclick = () => {
+      if (window.innerWidth <= 768) toggleSidebar();
+      quickAsk(queryText);
+    };
+    historyList.prepend(item);
+  }
 
   function toggleSpeech() {
     voiceEnabled = !voiceEnabled;
     if (voiceEnabled) {
-      voiceToggle.innerText = '🔊 VOICE ON';
+      voiceToggle.innerText = '🔊 Voice On';
       voiceToggle.classList.add('active');
     } else {
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      voiceToggle.innerText = '🔇 VOICE OFF';
+      voiceToggle.innerText = '🔇 Voice Off';
       voiceToggle.classList.remove('active');
     }
   }
 
-  function speakOnce(text) {
+  function speakText(text) {
     if (!voiceEnabled || !('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const cleanText = text.replace(/[*#_`•]/g, '').slice(0, 320);
-    const u = new SpeechSynthesisUtterance(cleanText);
-    u.lang = /[\u0900-\u097F]/.test(cleanText) ? 'hi-IN' : 'en-IN';
+    const clean = text.replace(/[*#_`•]/g, '').slice(0, 320);
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = /[\u0900-\u097F]/.test(clean) ? 'hi-IN' : 'en-IN';
     u.rate = 1.02;
     window.speechSynthesis.speak(u);
   }
@@ -302,17 +648,10 @@
       .replace(/\n/g, '<br>');
   }
 
-  function appendMessage(role, htmlText) {
-    const div = document.createElement('div');
-    div.className = `msg ${role}`;
-    if (role === 'ai') {
-      div.innerHTML = `<span class="sender">RAMMS GROUPS AI</span>${htmlText}`;
-      speakOnce(div.innerText.replace('RAMMS GROUPS AI', ''));
-    } else {
-      div.innerText = htmlText;
-    }
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
+  function copyReplyText(btn, rawText) {
+    navigator.clipboard.writeText(rawText);
+    btn.innerText = '✓ Copied';
+    setTimeout(() => btn.innerText = '📋 Copy', 1500);
   }
 
   function handleKey(e) {
@@ -327,30 +666,24 @@
   function startVoiceInput() {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRec) {
-      alert('Voice typing is not supported in this browser.');
+      alert('Voice input is not supported in this browser.');
       return;
     }
     const rec = new SpeechRec();
     rec.lang = 'hi-IN';
     rec.interimResults = false;
 
-    rec.onstart = () => {
-      micBtn.classList.add('listening');
-      statusLabel.innerText = '● LISTENING...';
-    };
-    rec.onresult = (event) => {
-      userInput.value = event.results[0][0].transcript;
+    rec.onstart = () => micBtn.classList.add('listening');
+    rec.onresult = (e) => {
+      userInput.value = e.results[0][0].transcript;
       sendMessage();
     };
-    rec.onerror = rec.onend = () => {
-      micBtn.classList.remove('listening');
-      statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-    };
+    rec.onerror = rec.onend = () => micBtn.classList.remove('listening');
     rec.start();
   }
 
-  // 100% Free Keyless Neural LLM Engine (Works directly from browser with zero API key)
-  async function askFreeNeuralLLM(userPrompt) {
+  // Keyless Neural LLM Engine
+  async function askNeuralEngine(userPrompt) {
     const nowStr = new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       dateStyle: 'full',
@@ -360,13 +693,12 @@
     const messagesToSend = [
       {
         role: 'system',
-        content: `You are RAMMS GROUPS AI, an intelligent AI assistant built by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad. Current date and time in India: ${nowStr}. Answer all questions accurately, helpfully, and naturally in the same language the user uses (Hindi, Hinglish, or English).`
+        content: `You are RAMMS GROUPS AI, an ultra-intelligent assistant built by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad (Jharkhand). Current date and time in India: ${nowStr}. Respond accurately, clearly, and naturally in the user's language (Hindi, Hinglish, or English).`
       },
       ...chatHistory.slice(-8),
       { role: 'user', content: userPrompt }
     ];
 
-    // Primary Keyless Endpoint (OpenAI-compatible JSON)
     try {
       const res = await fetch('https://text.pollinations.ai/openai', {
         method: 'POST',
@@ -389,7 +721,6 @@
       }
     } catch (e) {}
 
-    // Secondary Keyless GET Endpoint
     const promptEncoded = encodeURIComponent(`You are RAMMS GROUPS AI (created by Manas Jha, CEO of RAMMS GROUPS, for Tata DAV School Jamadoba Dhanbad). Answer clearly in user's language: ${userPrompt}`);
     const getRes = await fetch(`https://text.pollinations.ai/${promptEncoded}?model=openai`);
     if (getRes.ok) {
@@ -401,65 +732,35 @@
       }
     }
 
-    throw new Error('Neural network busy');
+    throw new Error('Busy');
   }
 
-  // Live Breaking News Engine
   async function fetchLiveNews() {
     const rssTopic = 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en';
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssTopic)}`;
-    const res = await fetch(apiUrl);
+    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssTopic)}`);
     const data = await res.json();
-    if (data && data.items && data.items.length > 0) {
-      const headlines = data.items.slice(0, 5).map((item, idx) => `<strong>${idx + 1}.</strong> ${item.title}`).join('<br><br>');
-      return `<strong>Today's Live India Headlines:</strong><br><br>${headlines}`;
+    if (data?.items?.length) {
+      return `<strong>Today's Top Live India Headlines:</strong><br><br>` +
+        data.items.slice(0, 5).map((item, i) => `<strong>${i + 1}.</strong> ${item.title}`).join('<br><br>');
     }
     return null;
   }
 
-  // Live Weather Engine
   async function fetchLiveWeather(query) {
     let city = query
-      .replace(/(weather|mausam|temperature|temp|ka|ki|ke|aaj|today|in|of|kaisa|hai|batao|\?)/gi, ' ')
+      .replace(/(weather|mausam|temperature|temp|ka|ki|ke|aaj|today|in|of|kaisa|hai|batao|live|check|karo|\?)/gi, ' ')
       .replace(/\s+/g, ' ')
       .trim();
     if (!city || city.length < 2) city = 'Dhanbad';
 
-    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
-    const geoData = await geoRes.json();
-    if (!geoData?.results?.length) return null;
+    const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)).json();
+    if (!geo?.results?.length) return null;
 
-    const place = geoData.results[0];
-    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`);
-    const wData = await wRes.json();
-    if (wData?.current) {
-      const c = wData.current;
-      return `<strong>Live Weather in ${place.name}, ${place.country}:</strong><br>• Temperature: <strong>${c.temperature_2m}°C</strong><br>• Humidity: <strong>${c.relative_humidity_2m}%</strong><br>• Wind Speed: <strong>${c.wind_speed_10m} km/h</strong>`;
-    }
-    return null;
-  }
-
-  // Live Wikipedia Backup
-  async function fetchLiveKnowledge(query) {
-    let topic = query
-      .replace(/^(what is|who is|tell me about|explain|define|kya hai|kaun hai|ke baare mein batao|about|क्या है|कौन है)\s+/i, '')
-      .replace(/[?!.]+$/g, '')
-      .trim();
-    if (!topic) topic = query;
-
-    const lang = /[\u0900-\u097F]/.test(topic) ? 'hi' : 'en';
-    const searchUrl = `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&format=json&origin=*`;
-    const searchRes = await fetch(searchUrl);
-    const searchData = await searchRes.json();
-
-    if (searchData?.query?.search?.length > 0) {
-      const bestTitle = searchData.query.search[0].title;
-      const summaryUrl = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`;
-      const sumRes = await fetch(summaryUrl);
-      const sumData = await sumRes.json();
-      if (sumData && sumData.extract) {
-        return `<strong>${sumData.title}:</strong> ${sumData.extract}`;
-      }
+    const p = geo.results[0];
+    const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`)).json();
+    if (w?.current) {
+      const c = w.current;
+      return `<strong>Live Weather in ${p.name}, ${p.country}:</strong><br>• Temperature: <strong>${c.temperature_2m}°C</strong><br>• Humidity: <strong>${c.relative_humidity_2m}%</strong><br>• Wind Speed: <strong>${c.wind_speed_10m} km/h</strong>`;
     }
     return null;
   }
@@ -468,46 +769,83 @@
     const text = userInput.value.trim();
     if (!text) return;
 
-    appendMessage('user', text);
-    userInput.value = '';
-    statusLabel.innerText = '● THINKING...';
+    if (welcomeHero) welcomeHero.style.display = 'none';
+    addToSidebarHistory(text);
 
+    // Append User Turn
+    const userDiv = document.createElement('div');
+    userDiv.className = 'turn-user';
+    userDiv.innerText = text;
+    chatFeed.appendChild(userDiv);
+
+    userInput.value = '';
+
+    // Append Gemini Thinking Turn
+    const aiTurn = document.createElement('div');
+    aiTurn.className = 'turn-ai';
+    aiTurn.innerHTML = `
+      <div class="sparkle-avatar thinking">${SPARKLE_SVG}</div>
+      <div class="ai-content" style="color:#8E918F;">Thinking...</div>
+    `;
+    chatFeed.appendChild(aiTurn);
+    feedWrapper.scrollTop = feedWrapper.scrollHeight;
+
+    const sparkleBox = aiTurn.querySelector('.sparkle-avatar');
+    const contentBox = aiTurn.querySelector('.ai-content');
     const lower = text.toLowerCase();
 
-    // 1. Live News
-    if (lower.includes('news') || lower.includes('khabar') || lower.includes('headline') || lower.includes('समाचार')) {
-      const newsHtml = await fetchLiveNews();
-      statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-      if (newsHtml) {
-        appendMessage('ai', newsHtml);
-        return;
-      }
+    function finalizeTurn(htmlOutput, plainTextForCopy) {
+      sparkleBox.classList.remove('thinking');
+      contentBox.style.color = '#E3E3E3';
+      contentBox.innerHTML = htmlOutput;
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'ai-actions';
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'mini-action';
+      copyBtn.innerText = '📋 Copy';
+      copyBtn.onclick = () => copyReplyText(copyBtn, plainTextForCopy);
+
+      const listenBtn = document.createElement('button');
+      listenBtn.className = 'mini-action';
+      listenBtn.innerText = '🔊 Listen';
+      listenBtn.onclick = () => {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(plainTextForCopy.slice(0, 320));
+        u.lang = /[\u0900-\u097F]/.test(plainTextForCopy) ? 'hi-IN' : 'en-IN';
+        window.speechSynthesis.speak(u);
+      };
+
+      actionsDiv.appendChild(copyBtn);
+      actionsDiv.appendChild(listenBtn);
+      contentBox.appendChild(actionsDiv);
+
+      speakText(plainTextForCopy);
+      feedWrapper.scrollTop = feedWrapper.scrollHeight;
     }
 
-    // 2. Live Weather
-    if (lower.includes('weather') || lower.includes('mausam') || lower.includes('temperature') || lower.includes('मौसम')) {
-      const weatherHtml = await fetchLiveWeather(text);
-      statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-      if (weatherHtml) {
-        appendMessage('ai', weatherHtml);
-        return;
-      }
-    }
-
-    // 3. Keyless Full AI LLM Response
     try {
-      const aiReply = await askFreeNeuralLLM(text);
-      statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-      appendMessage('ai', formatMarkdown(aiReply));
-      return;
-    } catch (err) {
-      const knowledge = await fetchLiveKnowledge(text);
-      statusLabel.innerText = '● ONLINE • NEURAL & LIVE ENGINE';
-      if (knowledge) {
-        appendMessage('ai', knowledge);
-      } else {
-        appendMessage('ai', 'Network busy hai—kripya ek second baad dubara poochein!');
+      if (lower.includes('news') || lower.includes('khabar') || lower.includes('headline') || lower.includes('समाचार')) {
+        const newsHtml = await fetchLiveNews();
+        if (newsHtml) {
+          finalizeTurn(newsHtml, contentBox.innerText || 'Today headlines');
+          return;
+        }
       }
+
+      if (lower.includes('weather') || lower.includes('mausam') || lower.includes('temperature') || lower.includes('मौसम')) {
+        const weatherHtml = await fetchLiveWeather(text);
+        if (weatherHtml) {
+          finalizeTurn(weatherHtml, weatherHtml.replace(/<[^>]*>/g, ' '));
+          return;
+        }
+      }
+
+      const aiReply = await askNeuralEngine(text);
+      finalizeTurn(formatMarkdown(aiReply), aiReply);
+    } catch (err) {
+      finalizeTurn('Network busy hai—kripya ek baar dubara poochein.', 'Network busy');
     }
   }
 </script>
