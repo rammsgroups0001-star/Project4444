@@ -3,1244 +3,537 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>RAMMS GROUPS AI // Text & Live Voice</title>
-  <meta name="theme-color" content="#131314">
+  <title>RAMMS GROUPS // AI Spatial Laser Harp &amp; Synth</title>
+  <meta name="theme-color" content="#040711">
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+
   <style>
     :root {
-      --bg-base: #131314;
-      --bg-sidebar: #1E1F20;
-      --bg-surface: #1E1F20;
-      --bg-hover: #282A2C;
-      --border-subtle: rgba(255, 255, 255, 0.08);
-      --text-primary: #E3E3E3;
-      --text-secondary: #C4C7C5;
-      --text-muted: #8E918F;
-      --gemini-grad: linear-gradient(74deg, #4285F4 0%, #9B72CB 35%, #D96570 70%, #4285F4 100%);
-      --accent-blue: #A8C7FA;
+      --bg: #040711;
+      --glass: rgba(10, 17, 34, 0.85);
+      --border: rgba(56, 189, 248, 0.28);
+      --cyan: #38BDF8;
+      --purple: #A855F7;
+      --emerald: #10B981;
+      --gold: #F59E0B;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      user-select: none;
     }
 
     body, html {
-      width: 100%;
+      width: 100vw;
       height: 100dvh;
-      background-color: var(--bg-base);
-      color: var(--text-primary);
-      display: flex;
       overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
     }
 
-    /* Gemini Left Sidebar */
-    .sidebar {
-      width: 260px;
-      background-color: var(--bg-sidebar);
+    #stage {
+      position: relative;
+      width: 100%;
       height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 14px 12px;
-      border-right: 1px solid var(--border-subtle);
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 50;
     }
 
-    @media (max-width: 768px) {
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        transform: translateX(-100%);
-      }
-      .sidebar.open {
-        transform: translateX(0);
-        box-shadow: 12px 0 40px rgba(0, 0, 0, 0.75);
-      }
-    }
-
-    .sidebar-top {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .new-chat-btn {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: #1A1B1C;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-secondary);
-      padding: 11px 16px;
-      border-radius: 24px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .new-chat-btn:hover {
-      background: var(--bg-hover);
-      color: #fff;
-    }
-
-    .history-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      padding: 0 12px;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    }
-
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 55vh;
-      overflow-y: auto;
-    }
-
-    .history-item {
-      padding: 9px 12px;
-      border-radius: 18px;
-      font-size: 13px;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      cursor: pointer;
-    }
-
-    .history-item:hover {
-      background: var(--bg-hover);
-    }
-
-    .sidebar-footer {
-      border-top: 1px solid var(--border-subtle);
-      padding-top: 12px;
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.5;
-      padding-left: 8px;
-    }
-
-    .sidebar-footer strong {
-      color: var(--text-secondary);
-    }
-
-    .drawer-backdrop {
+    video {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.55);
-      z-index: 40;
     }
 
-    .drawer-backdrop.show {
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       display: block;
     }
 
-    /* Main Workspace */
-    .main-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      position: relative;
-      min-width: 0;
-    }
-
-    .topbar {
-      height: 58px;
-      padding: 0 16px;
+    /* Top HUD */
+    .hud-top {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      z-index: 20;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 10;
-    }
-
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .menu-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 20px;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .menu-btn:hover {
-      background: var(--bg-hover);
-    }
-
-    .model-title {
-      display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       gap: 8px;
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--text-primary);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
     }
 
-    .pro-badge {
+    .brand h1 {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+    }
+
+    .brand p {
       font-size: 10px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: rgba(168, 199, 250, 0.14);
-      color: var(--accent-blue);
-      letter-spacing: 0.5px;
-    }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .live-header-btn {
-      background: linear-gradient(135deg, rgba(66, 133, 244, 0.22), rgba(155, 114, 203, 0.22));
-      border: 1px solid rgba(168, 199, 250, 0.4);
-      color: #E3E3E3;
-      padding: 6px 13px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .live-header-btn:hover {
-      background: rgba(168, 199, 250, 0.3);
-    }
-
-    .avatar-circle {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--gemini-grad);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 800;
-      color: #fff;
-    }
-
-    /* Scrollable Text Feed */
-    .feed-wrapper {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px 16px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      scroll-behavior: smooth;
-    }
-
-    .feed-inner {
-      width: 100%;
-      max-width: 780px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-
-    .welcome-hero {
-      margin-top: 4vh;
-      display: flex;
-      flex-direction: column;
-      gap: 28px;
-    }
-
-    .hero-greeting h2 {
-      font-size: clamp(28px, 5vw, 44px);
-      font-weight: 600;
-      line-height: 1.2;
-      background: var(--gemini-grad);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.5px;
-    }
-
-    .hero-greeting p {
-      font-size: clamp(20px, 3.5vw, 30px);
-      font-weight: 500;
-      color: #5E6260;
-      margin-top: 4px;
-    }
-
-    .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
-      gap: 12px;
-    }
-
-    .prompt-card {
-      background: var(--bg-surface);
-      border-radius: 16px;
-      padding: 16px;
-      min-height: 122px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.15s;
-      border: 1px solid transparent;
-    }
-
-    .prompt-card:hover {
-      background: var(--bg-hover);
-      border-color: var(--border-subtle);
-      transform: translateY(-2px);
-    }
-
-    .prompt-card span {
-      font-size: 14px;
-      color: var(--text-primary);
-      line-height: 1.4;
-    }
-
-    .card-icon {
-      align-self: flex-end;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: #131314;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-    }
-
-    .turn-user {
-      align-self: flex-end;
-      background: #282A2C;
-      color: var(--text-primary);
-      padding: 12px 18px;
-      border-radius: 22px 22px 6px 22px;
-      max-width: 82%;
-      font-size: 15px;
-      line-height: 1.55;
-    }
-
-    .turn-ai {
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-      width: 100%;
-    }
-
-    .sparkle-avatar {
-      width: 28px;
-      height: 28px;
-      flex-shrink: 0;
+      color: var(--muted);
       margin-top: 2px;
     }
 
-    .sparkle-avatar.thinking svg {
-      animation: spinPulse 1.5s infinite linear;
-    }
-
-    @keyframes spinPulse {
-      0% { transform: rotate(0deg) scale(0.92); }
-      50% { transform: rotate(180deg) scale(1.12); }
-      100% { transform: rotate(360deg) scale(0.92); }
-    }
-
-    .ai-content {
-      flex: 1;
-      font-size: 15px;
-      line-height: 1.68;
-      color: var(--text-primary);
-      overflow-x: auto;
-    }
-
-    .ai-content strong {
-      color: #fff;
-      font-weight: 600;
-    }
-
-    .ai-actions {
+    .pills {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .mini-action {
-      background: transparent;
-      border: 1px solid var(--border-subtle);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .mini-action:hover {
-      background: var(--bg-hover);
-      color: #fff;
-    }
-
-    /* Floating Gemini Capsule Input Dock */
-    .dock-wrapper {
-      width: 100%;
-      padding: 8px 16px 14px;
-      display: flex;
-      flex-direction: column;
+      gap: 8px;
       align-items: center;
-      background: linear-gradient(to top, #131314 75%, transparent);
     }
 
-    .capsule-box {
-      width: 100%;
-      max-width: 780px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 32px;
-      padding: 7px 10px 7px 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .capsule-box:focus-within {
-      background: #232426;
-      border-color: rgba(168, 199, 250, 0.45);
-    }
-
-    .capsule-box input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: var(--text-primary);
-      font-size: 15px;
-      outline: none;
-      padding: 8px 0;
-      min-width: 0;
-    }
-
-    .capsule-box input::placeholder {
-      color: var(--text-muted);
-    }
-
-    .dock-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      color: var(--text-secondary);
-      font-size: 17px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .dock-btn:hover {
-      background: var(--bg-hover);
-      color: #fff;
-    }
-
-    .dock-btn.listening {
-      background: rgba(217, 101, 112, 0.25);
-      color: #F28B82;
-    }
-
-    .dock-btn.send {
-      background: var(--accent-blue);
-      color: #062E6F;
-      font-size: 15px;
+    .pill {
+      font-size: 10px;
       font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--cyan);
     }
 
-    .live-pill-btn {
-      height: 38px;
-      padding: 0 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(168, 199, 250, 0.35);
-      background: rgba(66, 133, 244, 0.16);
-      color: #A8C7FA;
-      font-size: 12px;
-      font-weight: 700;
+    .pill.note {
+      background: rgba(168, 85, 247, 0.18);
+      border-color: rgba(168, 85, 247, 0.45);
+      color: #E9D5FF;
+    }
+
+    /* Bottom Controls */
+    .hud-bottom {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      z-index: 20;
       display: flex;
-      align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .live-pill-btn:hover {
-      background: rgba(66, 133, 244, 0.3);
-    }
-
-    .disclaimer {
-      margin-top: 8px;
-      font-size: 11px;
-      color: var(--text-muted);
-      text-align: center;
-    }
-
-    /* =========================================================
-       FULL-SCREEN GEMINI LIVE VOICE MODE OVERLAY
-       ========================================================= */
-    .live-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at center, #161C2E 0%, #0B0D12 100%);
-      z-index: 100;
-      flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: 28px 20px 42px;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
     }
 
-    .live-overlay.active {
+    .wave-modes {
       display: flex;
-    }
-
-    .live-top {
-      text-align: center;
-    }
-
-    .live-top h2 {
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 2.5px;
-      background: var(--gemini-grad);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-transform: uppercase;
-    }
-
-    .live-status-pill {
-      margin-top: 8px;
-      display: inline-block;
-      padding: 5px 14px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.06);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      color: #A8C7FA;
-      text-transform: uppercase;
-    }
-
-    /* Holographic Gemini Live Orb */
-    .live-orb-wrap {
-      position: relative;
-      width: 260px;
-      height: 260px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-    }
-
-    .live-ring {
-      position: absolute;
-      width: 185px;
-      height: 185px;
-      border-radius: 50%;
-      border: 2px solid rgba(168, 199, 250, 0.35);
-      transition: transform 0.14s ease, border-color 0.2s ease;
-    }
-
-    .live-ring.outer {
-      width: 235px;
-      height: 235px;
-      border: 1px dashed rgba(155, 114, 203, 0.3);
-      animation: spinSlow 16s linear infinite;
-    }
-
-    @keyframes spinSlow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .live-core {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #93C5FD, #4285F4 45%, #7E22CE 85%, #1E1B4B 100%);
-      box-shadow: 0 0 55px rgba(66, 133, 244, 0.6), inset 0 0 24px rgba(255, 255, 255, 0.4);
-      display: flex;
-      justify-content: center;
-      align-items: center;
       gap: 6px;
-      transition: transform 0.12s ease, background 0.25s ease;
+      flex-wrap: wrap;
     }
 
-    .live-bar {
-      width: 5px;
-      height: 16px;
-      background: #fff;
-      border-radius: 4px;
-      transition: height 0.08s ease;
-    }
-
-    /* Live States */
-    .live-orb-wrap.listening .live-core {
-      background: radial-gradient(circle at 35% 30%, #6EE7B7, #10B981 55%, #064E3B 100%);
-      box-shadow: 0 0 60px rgba(16, 185, 129, 0.75);
-    }
-
-    .live-orb-wrap.thinking .live-core {
-      background: radial-gradient(circle at 35% 30%, #FDE68A, #D97706 55%, #451A03 100%);
-      box-shadow: 0 0 60px rgba(245, 158, 11, 0.75);
-      animation: spinPulse 1.4s infinite linear;
-    }
-
-    .live-orb-wrap.speaking .live-core {
-      background: radial-gradient(circle at 35% 30%, #A5F3FC, #3B82F6 50%, #9333EA 90%);
-      box-shadow: 0 0 70px rgba(168, 199, 250, 0.9);
-    }
-
-    .live-bottom-controls {
-      display: flex;
-      gap: 18px;
-      align-items: center;
-    }
-
-    .live-circle-btn {
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.08);
-      color: #fff;
-      font-size: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .mode-btn {
+      padding: 6px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
       cursor: pointer;
     }
 
-    .live-circle-btn.mic-active {
-      background: #059669;
-      border-color: #34D399;
+    .mode-btn.active {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--cyan);
+      color: #fff;
     }
 
-    .live-circle-btn.end-call {
-      background: #DC2626;
-      border-color: #F87171;
+    .hint-text {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .hint-text strong {
+      color: var(--gold);
+    }
+
+    /* Start Overlay */
+    #startScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: radial-gradient(circle at center, #0E1B36 0%, #040711 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--gold);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      padding: 6px 16px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+
+    #startScreen h2 {
+      font-size: clamp(24px, 4.5vw, 38px);
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+    }
+
+    #startScreen h2 span {
+      color: var(--cyan);
+    }
+
+    #startScreen p {
+      max-width: 520px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 26px;
+    }
+
+    .launch-btn {
+      padding: 15px 36px;
+      border-radius: 12px;
+      border: 1px solid var(--cyan);
+      background: linear-gradient(135deg, #0284C7, #7C3AED);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      box-shadow: 0 8px 28px rgba(56, 189, 248, 0.35);
     }
   </style>
 </head>
 <body>
 
-  <!-- Mobile Backdrop -->
-  <div class="drawer-backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+  <div id="startScreen">
+    <div class="badge">RAMMS GROUPS // PROJECT 05</div>
+    <h2>AI SPATIAL <span>LASER HARP</span></h2>
+    <p>
+      Play real-time synthesized music in mid-air without touching the screen. Pluck the 7 Neon Laser Strings with your fingers and move your second hand up or down to modulate synth resonance.
+    </p>
+    <button id="startBtn" class="launch-btn" onclick="initLaserHarp()">ACTIVATE AUDIO &amp; CAMERA</button>
+  </div>
 
-  <!-- Gemini Left Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-top">
-      <button class="new-chat-btn" onclick="resetNewChat()">
-        <span style="font-size:18px;">+</span> New chat
-      </button>
-      <div class="history-label">Recent</div>
-      <div class="history-list" id="historyList">
-        <div class="history-item" onclick="quickAsk('Who built RAMMS GROUPS AI?')">🏫 RAMMS GROUPS AI Info</div>
+  <div id="stage">
+    <video id="cam" playsinline muted></video>
+    <canvas id="canvas"></canvas>
+
+    <div class="hud-top">
+      <div class="brand">
+        <h1>SPATIAL LASER HARP // SYNTH OS</h1>
+        <p>TATA DAV SCHOOL EXHIBITION • TOUCHLESS WEB AUDIO</p>
+      </div>
+      <div class="pills">
+        <span class="pill note" id="notePill">NOTE: READY</span>
+        <span class="pill" id="freqPill">440 Hz</span>
       </div>
     </div>
 
-    <div class="sidebar-footer">
-      <div><strong>RAMMS GROUPS AI</strong> • Ultra Edition</div>
-      <div>CEO: Manas Jha | Founder: Rupesh Kr. Sinha</div>
-      <div>📍 Tata DAV School, Jamadoba</div>
-    </div>
-  </aside>
-
-  <!-- Main Gemini Text Workspace -->
-  <main class="main-area">
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" onclick="toggleSidebar()" title="Menu">☰</button>
-        <div class="model-title">
-          RAMMS GROUPS AI
-          <span class="pro-badge">ULTRA 2.5</span>
-        </div>
+    <div class="hud-bottom">
+      <div class="wave-modes">
+        <button class="mode-btn active" onclick="setWave('triangle', this)">HARP (TRIANGLE)</button>
+        <button class="mode-btn" onclick="setWave('sine', this)">FLUTE (SINE)</button>
+        <button class="mode-btn" onclick="setWave('sawtooth', this)">CYBER SYNTH (SAW)</button>
       </div>
-      <div class="topbar-right">
-        <button class="live-header-btn" onclick="openLiveMode()">✨ Live Voice</button>
-        <div class="avatar-circle" title="Manas Jha">MJ</div>
+      <div class="hint-text">
+        <strong>PLUCK LASER BEAMS</strong> IN AIR TO PLAY • <strong>2ND HAND HEIGHT:</strong> ECHO FILTER
       </div>
-    </header>
-
-    <div class="feed-wrapper" id="feedWrapper">
-      <div class="feed-inner" id="chatFeed">
-        <div class="welcome-hero" id="welcomeHero">
-          <div class="hero-greeting">
-            <h2>Hello, I'm RAMMS GROUPS AI</h2>
-            <p>Type a message or tap Live for real-time voice</p>
-          </div>
-
-          <div class="cards-grid">
-            <div class="prompt-card" onclick="quickAsk('Aaj India ki top 5 latest news kya hain?')">
-              <span>Aaj ki India &amp; world breaking news batao</span>
-              <div class="card-icon">📰</div>
-            </div>
-            <div class="prompt-card" onclick="quickAsk('Dhanbad Jharkhand ka aaj ka live weather kaisa hai?')">
-              <span>Dhanbad ka abhi ka live weather check karo</span>
-              <div class="card-icon">🌤️</div>
-            </div>
-            <div class="prompt-card" onclick="quickAsk('RAMMS GROUPS AI aur Tata DAV School project ke baare mein batao')">
-              <span>Is AI project aur team ki details batao</span>
-              <div class="card-icon">✨</div>
-            </div>
-            <div class="prompt-card" onclick="openLiveMode()">
-              <span>Gemini Live Voice Mode mein seedha baat karo</span>
-              <div class="card-icon">🎙️</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Floating Capsule Prompt Input -->
-    <div class="dock-wrapper">
-      <div class="capsule-box">
-        <input type="text" id="userInput" placeholder="Ask RAMMS GROUPS AI..." onkeypress="handleKey(event)" autocomplete="off">
-        <button id="micBtn" class="dock-btn" onclick="startDictation()" title="Voice Type">🎙️</button>
-        <button class="dock-btn send" onclick="sendMessage()" title="Send">➤</button>
-        <button class="live-pill-btn" onclick="openLiveMode()" title="Open Gemini Live Voice">✨ Live</button>
-      </div>
-      <div class="disclaimer">RAMMS GROUPS AI • Text &amp; Live Neural Voice Intelligence</div>
-    </div>
-  </main>
-
-  <!-- =========================================================
-       FULL-SCREEN GEMINI LIVE VOICE MODE OVERLAY (NO TEXT CLUTTER)
-       ========================================================= -->
-  <div class="live-overlay" id="liveOverlay">
-    <div class="live-top">
-      <h2>RAMMS GROUPS AI LIVE</h2>
-      <div class="live-status-pill" id="liveStatusText">TAP ORB TO SPEAK</div>
-    </div>
-
-    <div class="live-orb-wrap" id="liveOrbWrap" onclick="triggerLiveMic()">
-      <div class="live-ring outer"></div>
-      <div class="live-ring" id="liveInnerRing"></div>
-      <div class="live-core" id="liveCore">
-        <div class="live-bar" id="lb1"></div>
-        <div class="live-bar" id="lb2"></div>
-        <div class="live-bar" id="lb3"></div>
-        <div class="live-bar" id="lb4"></div>
-        <div class="live-bar" id="lb5"></div>
-      </div>
-    </div>
-
-    <div class="live-bottom-controls">
-      <button class="live-circle-btn mic-active" id="liveMicToggle" onclick="triggerLiveMic()" title="Speak">🎙️</button>
-      <button class="live-circle-btn end-call" onclick="closeLiveMode()" title="Exit Live Mode">✕</button>
     </div>
   </div>
 
 <script>
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('backdrop');
-  const feedWrapper = document.getElementById('feedWrapper');
-  const chatFeed = document.getElementById('chatFeed');
-  const welcomeHero = document.getElementById('welcomeHero');
-  const userInput = document.getElementById('userInput');
-  const micBtn = document.getElementById('micBtn');
-  const historyList = document.getElementById('historyList');
+  const video = document.getElementById('cam');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const notePill = document.getElementById('notePill');
+  const freqPill = document.getElementById('freqPill');
 
-  // Live Mode Elements
-  const liveOverlay = document.getElementById('liveOverlay');
-  const liveOrbWrap = document.getElementById('liveOrbWrap');
-  const liveInnerRing = document.getElementById('liveInnerRing');
-  const liveCore = document.getElementById('liveCore');
-  const liveStatusText = document.getElementById('liveStatusText');
-  const liveBars = [
-    document.getElementById('lb1'),
-    document.getElementById('lb2'),
-    document.getElementById('lb3'),
-    document.getElementById('lb4'),
-    document.getElementById('lb5')
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Indian Sargam + Western Scale Frequencies (C4 Major / Bilawal Thaat)
+  const STRINGS = [
+    { label: 'SA (C4)',  freq: 261.63, color: '#38BDF8', glow: 0 },
+    { label: 'RE (D4)',  freq: 293.66, color: '#818CF8', glow: 0 },
+    { label: 'GA (E4)',  freq: 329.63, color: '#A855F7', glow: 0 },
+    { label: 'MA (F4)',  freq: 349.23, color: '#EC4899', glow: 0 },
+    { label: 'PA (G4)',  freq: 392.00, color: '#F43F5E', glow: 0 },
+    { label: 'DHA (A4)', freq: 440.00, color: '#F59E0B', glow: 0 },
+    { label: 'NI (B4)',  freq: 493.88, color: '#10B981', glow: 0 },
+    { label: 'SA\' (C5)',freq: 523.25, color: '#38BDF8', glow: 0 }
   ];
 
-  let chatHistory = [];
-  let isLiveActive = false;
-  let isSpeakingNow = false;
-  let activeRecognition = null;
-  let liveWaveTimer = null;
-  let cachedVoices = [];
+  let audioCtx = null;
+  let analyser = null;
+  let filterNode = null;
+  let waveType = 'triangle';
+  let handPoints = [];
+  let prevFingerX = {};
+  let ripples = [];
 
-  function loadVoices() {
-    if ('speechSynthesis' in window) {
-      cachedVoices = window.speechSynthesis.getVoices();
-    }
-  }
-  if ('speechSynthesis' in window) {
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+  function setWave(type, btn) {
+    waveType = type;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
   }
 
-  const SPARKLE_SVG = `
-    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="gemGrad" x1="0" y1="0" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4285F4"/>
-          <stop offset="50%" stop-color="#9B72CB"/>
-          <stop offset="100%" stop-color="#D96570"/>
-        </linearGradient>
-      </defs>
-      <path d="M14 2C14.6 8.8 19.2 13.4 26 14C19.2 14.6 14.6 19.2 14 26C13.4 19.2 8.8 14.6 2 14C8.8 13.4 13.4 8.8 14 2Z" fill="url(#gemGrad)"/>
-    </svg>
-  `;
+  function setupAudio() {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContext();
 
-  function toggleSidebar() {
-    sidebar.classList.toggle('open');
-    backdrop.classList.toggle('show');
+    filterNode = audioCtx.createBiquadFilter();
+    filterNode.type = 'lowpass';
+    filterNode.frequency.value = 1800;
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 128;
+
+    filterNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
   }
 
-  function resetNewChat() {
-    chatHistory = [];
-    chatFeed.innerHTML = '';
-    chatFeed.appendChild(welcomeHero);
-    welcomeHero.style.display = 'flex';
-    if (window.innerWidth <= 768) toggleSidebar();
+  function triggerNote(index, yPos) {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const s = STRINGS[index];
+    s.glow = 1.0;
+
+    // Higher hand position plays one octave brighter!
+    const octaveMult = yPos < H * 0.42 ? 2 : 1;
+    const finalFreq = s.freq * octaveMult;
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = waveType;
+    osc.frequency.setValueAtTime(finalFreq, audioCtx.currentTime);
+
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.32, audioCtx.currentTime + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0008, audioCtx.currentTime + 1.15);
+
+    osc.connect(gain);
+    gain.connect(filterNode);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.2);
+
+    notePill.innerText = `NOTE: ${s.label}${octaveMult === 2 ? ' HIGH' : ''}`;
+    freqPill.innerText = `${Math.round(finalFreq)} Hz`;
   }
 
-  function addToSidebarHistory(queryText) {
-    const item = document.createElement('div');
-    item.className = 'history-item';
-    item.innerText = '💬 ' + queryText;
-    item.onclick = () => {
-      if (window.innerWidth <= 768) toggleSidebar();
-      quickAsk(queryText);
-    };
-    historyList.prepend(item);
-  }
+  function onHandResults(results) {
+    const landmarksList = results.multiHandLandmarks || [];
+    handPoints = [];
 
-  function formatMarkdown(text) {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
-  }
+    landmarksList.forEach((lm, hIdx) => {
+      // Check index & middle finger tips
+      const tips = [8, 12];
+      tips.forEach(tipId => {
+        const x = (1 - lm[tipId].x) * W;
+        const y = lm[tipId].y * H;
+        const key = `${hIdx}_${tipId}`;
+        handPoints.push({ x, y });
 
-  function copyReplyText(btn, rawText) {
-    navigator.clipboard.writeText(rawText);
-    btn.innerText = '✓ Copied';
-    setTimeout(() => btn.innerText = '📋 Copy', 1500);
-  }
+        // Check crossing across any of the 8 vertical laser beams
+        const margin = W * 0.12;
+        const usableW = W - margin * 2;
+        const step = usableW / (STRINGS.length - 1);
 
-  function handleKey(e) {
-    if (e.key === 'Enter') sendMessage();
-  }
-
-  function quickAsk(text) {
-    userInput.value = text;
-    sendMessage();
-  }
-
-  // =========================================================
-  // SHARED KEYLESS NEURAL ENGINE + LIVE DATA
-  // =========================================================
-  async function askNeuralEngine(userPrompt, isVoiceMode = false) {
-    const nowStr = new Date().toLocaleString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      dateStyle: 'full',
-      timeStyle: 'short'
-    });
-
-    const voiceInstruction = isVoiceMode
-      ? 'Reply in 2 short, crisp, natural spoken sentences without markdown, bullet points, or symbols.'
-      : 'Respond clearly, accurately, and naturally in the user’s language (Hindi, Hinglish, or English).';
-
-    const messagesToSend = [
-      {
-        role: 'system',
-        content: `You are RAMMS GROUPS AI, an intelligent AI assistant built by Manas Jha (CEO of RAMMS GROUPS; Founder: Rupesh Kumar Sinha) for Tata DAV School, Jamadoba, Dhanbad (Jharkhand). Current date and time in India: ${nowStr}. ${voiceInstruction}`
-      },
-      ...chatHistory.slice(-8),
-      { role: 'user', content: userPrompt }
-    ];
-
-    try {
-      const res = await fetch('https://text.pollinations.ai/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'openai',
-          messages: messagesToSend,
-          seed: Math.floor(Math.random() * 100000)
-        })
+        if (prevFingerX[key] !== undefined) {
+          STRINGS.forEach((str, sIdx) => {
+            const beamX = margin + sIdx * step;
+            const prevX = prevFingerX[key];
+            if ((prevX < beamX && x >= beamX) || (prevX > beamX && x <= beamX)) {
+              triggerNote(sIdx, y);
+              ripples.push({ x: beamX, y, r: 8, color: str.color, alpha: 1 });
+            }
+          });
+        }
+        prevFingerX[key] = x;
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const reply = data?.choices?.[0]?.message?.content;
-        if (reply && reply.trim()) {
-          chatHistory.push({ role: 'user', content: userPrompt });
-          chatHistory.push({ role: 'assistant', content: reply.trim() });
-          return reply.trim();
-        }
+      // If 2nd hand present, modulate lowpass filter brightness by height
+      if (hIdx === 1 && filterNode) {
+        const normY = 1 - Math.min(1, Math.max(0, lm[9].y));
+        filterNode.frequency.setTargetAtTime(400 + normY * 3600, audioCtx.currentTime, 0.05);
       }
-    } catch (e) {}
+    });
 
-    const promptEncoded = encodeURIComponent(`You are RAMMS GROUPS AI (created by Manas Jha, CEO of RAMMS GROUPS, for Tata DAV School Jamadoba Dhanbad). ${voiceInstruction} Question: ${userPrompt}`);
-    const getRes = await fetch(`https://text.pollinations.ai/${promptEncoded}?model=openai`);
-    if (getRes.ok) {
-      const textReply = await getRes.text();
-      if (textReply && textReply.trim()) {
-        chatHistory.push({ role: 'user', content: userPrompt });
-        chatHistory.push({ role: 'assistant', content: textReply.trim() });
-        return textReply.trim();
-      }
+    if (landmarksList.length === 0) {
+      prevFingerX = {};
     }
-
-    throw new Error('Network busy');
   }
 
-  async function fetchLiveNewsText(forVoice = false) {
-    const rssTopic = 'https://news.google.com/rss?hl=en-IN&gl=IN&ceid=IN:en';
-    const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssTopic)}`);
-    const data = await res.json();
-    if (data?.items?.length) {
-      if (forVoice) {
-        return `Today's top headline is: ${data.items[0].title}. Another update: ${data.items[1].title}.`;
+  function renderFrame() {
+    ctx.fillStyle = '#040711';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle mirrored camera background
+    if (video.readyState >= 2) {
+      ctx.save();
+      ctx.translate(W, 0);
+      ctx.scale(-1, 1);
+      ctx.globalAlpha = 0.34;
+      ctx.drawImage(video, 0, 0, W, H);
+      ctx.restore();
+    }
+
+    // Live Audio Spectrum Waveform at bottom
+    if (analyser) {
+      const bufferLen = analyser.frequencyBinCount;
+      const dataArr = new Uint8Array(bufferLen);
+      analyser.getByteFrequencyData(dataArr);
+
+      const barW = W / bufferLen;
+      for (let i = 0; i < bufferLen; i++) {
+        const val = dataArr[i] / 255;
+        const barH = val * (H * 0.24);
+        ctx.fillStyle = `rgba(56, 189, 248, ${0.15 + val * 0.45})`;
+        ctx.fillRect(i * barW, H - barH, barW - 2, barH);
       }
-      return `<strong>Today's Top Live India Headlines:</strong><br><br>` +
-        data.items.slice(0, 5).map((item, i) => `<strong>${i + 1}.</strong> ${item.title}`).join('<br><br>');
     }
-    return null;
+
+    // Draw 8 Vertical Neon Laser Harp Strings
+    const margin = W * 0.12;
+    const usableW = W - margin * 2;
+    const step = usableW / (STRINGS.length - 1);
+
+    STRINGS.forEach((str, idx) => {
+      const x = margin + idx * step;
+      const vibrate = str.glow > 0.05 ? Math.sin(performance.now() * 0.08) * (str.glow * 12) : 0;
+
+      // Outer laser glow
+      ctx.strokeStyle = str.color;
+      ctx.globalAlpha = 0.25 + str.glow * 0.65;
+      ctx.lineWidth = 3 + str.glow * 8;
+      ctx.beginPath();
+      ctx.moveTo(x, 78);
+      ctx.quadraticCurveTo(x + vibrate, H / 2, x, H - 78);
+      ctx.stroke();
+
+      // Core white beam
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6 + str.glow * 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 78);
+      ctx.quadraticCurveTo(x + vibrate, H / 2, x, H - 78);
+      ctx.stroke();
+
+      // Note Label
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = str.color;
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(str.label, x, 96);
+
+      str.glow *= 0.92;
+    });
+
+    ctx.globalAlpha = 1.0;
+
+    // Draw Pluck Ripples
+    ripples = ripples.filter(rp => rp.alpha > 0.05);
+    ripples.forEach(rp => {
+      ctx.strokeStyle = rp.color;
+      ctx.globalAlpha = rp.alpha;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+      ctx.stroke();
+      rp.r += 3.5;
+      rp.alpha *= 0.9;
+    });
+    ctx.globalAlpha = 1.0;
+
+    // Draw Finger Cursors
+    handPoints.forEach(pt => {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#38BDF8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 15, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    requestAnimationFrame(renderFrame);
   }
 
-  async function fetchLiveWeatherText(query, forVoice = false) {
-    let city = query
-      .replace(/(weather|mausam|temperature|temp|ka|ki|ke|aaj|today|in|of|kaisa|hai|batao|live|check|karo|\?)/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    if (!city || city.length < 2) city = 'Dhanbad';
-
-    const geo = await (await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`)).json();
-    if (!geo?.results?.length) return null;
-
-    const p = geo.results[0];
-    const w = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m`)).json();
-    if (w?.current) {
-      const c = w.current;
-      if (forVoice) {
-        return `In ${p.name}, the current temperature is ${c.temperature_2m} degree Celsius with humidity at ${c.relative_humidity_2m} percent.`;
-      }
-      return `<strong>Live Weather in ${p.name}, ${p.country}:</strong><br>• Temperature: <strong>${c.temperature_2m}°C</strong><br>• Humidity: <strong>${c.relative_humidity_2m}%</strong><br>• Wind Speed: <strong>${c.wind_speed_10m} km/h</strong>`;
-    }
-    return null;
-  }
-
-  // =========================================================
-  // TEXT CHAT MODE FUNCTIONS
-  // =========================================================
-  function startDictation() {
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec) {
-      alert('Voice input is not supported in this browser.');
-      return;
-    }
-    const rec = new SpeechRec();
-    rec.lang = 'hi-IN';
-    rec.interimResults = false;
-
-    rec.onstart = () => micBtn.classList.add('listening');
-    rec.onresult = (e) => {
-      userInput.value = e.results[0][0].transcript;
-      sendMessage();
-    };
-    rec.onerror = rec.onend = () => micBtn.classList.remove('listening');
-    rec.start();
-  }
-
-  async function sendMessage() {
-    const text = userInput.value.trim();
-    if (!text) return;
-
-    if (welcomeHero) welcomeHero.style.display = 'none';
-    addToSidebarHistory(text);
-
-    const userDiv = document.createElement('div');
-    userDiv.className = 'turn-user';
-    userDiv.innerText = text;
-    chatFeed.appendChild(userDiv);
-
-    userInput.value = '';
-
-    const aiTurn = document.createElement('div');
-    aiTurn.className = 'turn-ai';
-    aiTurn.innerHTML = `
-      <div class="sparkle-avatar thinking">${SPARKLE_SVG}</div>
-      <div class="ai-content" style="color:#8E918F;">Thinking...</div>
-    `;
-    chatFeed.appendChild(aiTurn);
-    feedWrapper.scrollTop = feedWrapper.scrollHeight;
-
-    const sparkleBox = aiTurn.querySelector('.sparkle-avatar');
-    const contentBox = aiTurn.querySelector('.ai-content');
-    const lower = text.toLowerCase();
-
-    function finalizeTextTurn(htmlOutput, plainText) {
-      sparkleBox.classList.remove('thinking');
-      contentBox.style.color = '#E3E3E3';
-      contentBox.innerHTML = htmlOutput;
-
-      const actionsDiv = document.createElement('div');
-      actionsDiv.className = 'ai-actions';
-
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'mini-action';
-      copyBtn.innerText = '📋 Copy';
-      copyBtn.onclick = () => copyReplyText(copyBtn, plainText);
-
-      const listenBtn = document.createElement('button');
-      listenBtn.className = 'mini-action';
-      listenBtn.innerText = '🔊 Listen';
-      listenBtn.onclick = () => speakCleanSentence(plainText, false);
-
-      actionsDiv.appendChild(copyBtn);
-      actionsDiv.appendChild(listenBtn);
-      contentBox.appendChild(actionsDiv);
-      feedWrapper.scrollTop = feedWrapper.scrollHeight;
-    }
+  async function initLaserHarp() {
+    const btn = document.getElementById('startBtn');
+    btn.innerText = 'INITIALIZING SYNTH & OPTICS...';
+    btn.disabled = true;
 
     try {
-      if (lower.includes('news') || lower.includes('khabar') || lower.includes('headline') || lower.includes('समाचार')) {
-        const newsHtml = await fetchLiveNewsText(false);
-        if (newsHtml) {
-          finalizeTextTurn(newsHtml, newsHtml.replace(/<[^>]*>/g, ' '));
-          return;
-        }
-      }
+      setupAudio();
 
-      if (lower.includes('weather') || lower.includes('mausam') || lower.includes('temperature') || lower.includes('मौसम')) {
-        const weatherHtml = await fetchLiveWeatherText(text, false);
-        if (weatherHtml) {
-          finalizeTextTurn(weatherHtml, weatherHtml.replace(/<[^>]*>/g, ' '));
-          return;
-        }
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 270 } },
+        audio: false
+      });
 
-      const aiReply = await askNeuralEngine(text, false);
-      finalizeTextTurn(formatMarkdown(aiReply), aiReply);
+      video.srcObject = stream;
+      await video.play();
+
+      document.getElementById('startScreen').style.display = 'none';
+      requestAnimationFrame(renderFrame);
+
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.55
+      });
+
+      hands.onResults(onHandResults);
+
+      let busy = false;
+      async function loop() {
+        if (!busy && video.readyState >= 2) {
+          busy = true;
+          try { await hands.send({ image: video }); } catch (e) {}
+          busy = false;
+        }
+        setTimeout(loop, 16);
+      }
+      loop();
     } catch (err) {
-      finalizeTextTurn('Network busy hai—kripya ek baar dubara poochein.', 'Network busy');
+      alert('Camera & Audio permissions are required over HTTPS.');
+      btn.innerText = 'RETRY';
+      btn.disabled = false;
     }
-  }
-
-  // =========================================================
-  // GEMINI LIVE VOICE MODE (ECHO-PROOF, ZERO-LOOP ARCHITECTURE)
-  // =========================================================
-  function setLiveOrbState(state, label) {
-    liveOrbWrap.className = 'live-orb-wrap ' + state;
-    liveStatusText.innerText = label;
-
-    if (liveWaveTimer) {
-      clearInterval(liveWaveTimer);
-      liveWaveTimer = null;
-    }
-
-    if (state === 'speaking' || state === 'listening') {
-      liveWaveTimer = setInterval(() => {
-        const scale = state === 'speaking' ? (0.98 + Math.random() * 0.14) : (1.0 + Math.random() * 0.06);
-        liveCore.style.transform = `scale(${scale})`;
-        liveInnerRing.style.transform = `scale(${scale * 1.07})`;
-        liveBars.forEach(bar => {
-          const h = state === 'speaking'
-            ? Math.floor(14 + Math.random() * 44)
-            : Math.floor(12 + Math.random() * 22);
-          bar.style.height = `${h}px`;
-        });
-      }, 95);
-    } else {
-      liveCore.style.transform = 'scale(1)';
-      liveInnerRing.style.transform = 'scale(1)';
-      liveBars.forEach(bar => bar.style.height = '16px');
-    }
-  }
-
-  function openLiveMode() {
-    isLiveActive = true;
-    liveOverlay.classList.add('active');
-    triggerLiveMic();
-  }
-
-  function closeLiveMode() {
-    isLiveActive = false;
-    isSpeakingNow = false;
-    if (activeRecognition) {
-      try { activeRecognition.abort(); } catch (e) {}
-      activeRecognition = null;
-    }
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    setLiveOrbState('', 'TAP ORB TO SPEAK');
-    liveOverlay.classList.remove('active');
-  }
-
-  function pickNaturalVoice(text) {
-    if (!cachedVoices.length) loadVoices();
-    const isDevanagari = /[\u0900-\u097F]/.test(text);
-    if (isDevanagari) {
-      return cachedVoices.find(v => v.lang.toLowerCase().includes('hi') && v.name.toLowerCase().includes('google')) ||
-             cachedVoices.find(v => v.lang.toLowerCase().startsWith('hi')) || null;
-    }
-    return cachedVoices.find(v => v.lang.toLowerCase() === 'en-in' && v.name.toLowerCase().includes('google')) ||
-           cachedVoices.find(v => v.lang.toLowerCase().startsWith('en') && v.name.toLowerCase().includes('google')) ||
-           cachedVoices.find(v => v.lang.toLowerCase().startsWith('en')) || null;
-  }
-
-  function speakCleanSentence(text, autoNextTurn = false) {
-    if (!('speechSynthesis' in window)) return;
-
-    // 1. Strictly kill mic BEFORE speaking so AI NEVER hears its own voice (Zero Echo Loop!)
-    if (activeRecognition) {
-      try { activeRecognition.abort(); } catch (e) {}
-      activeRecognition = null;
-    }
-    window.speechSynthesis.cancel();
-    isSpeakingNow = true;
-
-    const clean = text.replace(/[*#_`•\[\]()]/g, '').replace(/\s+/g, ' ').trim();
-    if (!clean) {
-      isSpeakingNow = false;
-      return;
-    }
-
-    const chosenVoice = pickNaturalVoice(clean);
-    const u = new SpeechSynthesisUtterance(clean);
-    if (chosenVoice) {
-      u.voice = chosenVoice;
-      u.lang = chosenVoice.lang;
-    } else {
-      u.lang = /[\u0900-\u097F]/.test(clean) ? 'hi-IN' : 'en-IN';
-    }
-    u.rate = 1.02;
-    u.pitch = 1.0;
-
-    u.onstart = () => {
-      if (isLiveActive) setLiveOrbState('speaking', 'SPEAKING...');
-    };
-
-    u.onend = () => {
-      isSpeakingNow = false;
-      if (isLiveActive) {
-        setLiveOrbState('', 'TAP ORB TO SPEAK');
-        // Wait 750ms after speaker completely stops before opening mic again
-        if (autoNextTurn) {
-          setTimeout(() => {
-            if (isLiveActive && !isSpeakingNow) triggerLiveMic();
-          }, 750);
-        }
-      }
-    };
-
-    u.onerror = () => {
-      isSpeakingNow = false;
-      if (isLiveActive) setLiveOrbState('', 'TAP ORB TO SPEAK');
-    };
-
-    window.speechSynthesis.speak(u);
-  }
-
-  function triggerLiveMic() {
-    if (!isLiveActive) return;
-
-    // Interrupt AI speech if user taps orb while AI is talking
-    if (isSpeakingNow) {
-      window.speechSynthesis.cancel();
-      isSpeakingNow = false;
-    }
-
-    if (activeRecognition) {
-      try { activeRecognition.abort(); } catch (e) {}
-      activeRecognition = null;
-    }
-
-    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRec) {
-      liveStatusText.innerText = 'VOICE NOT SUPPORTED IN BROWSER';
-      return;
-    }
-
-    const rec = new SpeechRec();
-    activeRecognition = rec;
-    rec.lang = 'hi-IN';
-    rec.interimResults = false;
-
-    rec.onstart = () => {
-      setLiveOrbState('listening', 'LISTENING...');
-    };
-
-    rec.onresult = async (event) => {
-      const spokenText = event.results[0][0].transcript.trim();
-      activeRecognition = null;
-      if (!spokenText || !isLiveActive) return;
-
-      setLiveOrbState('thinking', 'THINKING...');
-      const lower = spokenText.toLowerCase();
-
-      try {
-        if (lower.includes('news') || lower.includes('khabar') || lower.includes('समाचार')) {
-          const newsSpoken = await fetchLiveNewsText(true);
-          if (newsSpoken && isLiveActive) {
-            speakCleanSentence(newsSpoken, true);
-            return;
-          }
-        }
-
-        if (lower.includes('weather') || lower.includes('mausam') || lower.includes('मौसम')) {
-          const weatherSpoken = await fetchLiveWeatherText(spokenText, true);
-          if (weatherSpoken && isLiveActive) {
-            speakCleanSentence(weatherSpoken, true);
-            return;
-          }
-        }
-
-        const reply = await askNeuralEngine(spokenText, true);
-        if (isLiveActive) {
-          speakCleanSentence(reply, true);
-        }
-      } catch (e) {
-        if (isLiveActive) {
-          speakCleanSentence('Please ask that again.', true);
-        }
-      }
-    };
-
-    rec.onerror = () => {
-      activeRecognition = null;
-      if (isLiveActive && !isSpeakingNow) {
-        setLiveOrbState('', 'TAP ORB TO SPEAK');
-      }
-    };
-
-    rec.onend = () => {
-      activeRecognition = null;
-      if (isLiveActive && !isSpeakingNow && liveOrbWrap.classList.contains('listening')) {
-        setLiveOrbState('', 'TAP ORB TO SPEAK');
-      }
-    };
-
-    rec.start();
   }
 </script>
 </body>
